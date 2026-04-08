@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { X, Gift } from 'lucide-react'
+import { X } from 'lucide-react'
 import { format, addDays } from 'date-fns'
+import TagFriendPicker from './TagFriendPicker'
 
-export default function AddGoalModal({ onClose, onAdd }) {
+export default function AddGoalModal({ onClose, onAdd, currentUserId }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [deadline, setDeadline] = useState(format(addDays(new Date(), 7), "yyyy-MM-dd'T'HH:mm"))
   const [points, setPoints] = useState(10)
   const [gift, setGift] = useState('')
+  const [taggedFriendId, setTaggedFriendId] = useState(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
@@ -20,6 +22,7 @@ export default function AddGoalModal({ onClose, onAdd }) {
       deadline,
       points: Number(points),
       gift: gift.trim() || null,
+      tagged_friend_id: taggedFriendId,
     })
     setLoading(false)
     onClose()
@@ -70,6 +73,15 @@ export default function AddGoalModal({ onClose, onAdd }) {
               />
             </div>
             <span className="field-hint">Set a personal reward to motivate yourself!</span>
+          </div>
+          <div className="field">
+            <label>Tag Accountability Partner</label>
+            <TagFriendPicker
+              currentUserId={currentUserId}
+              selectedId={taggedFriendId}
+              onChange={setTaggedFriendId}
+            />
+            <span className="field-hint">Tag a friend so they can keep you on track!</span>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>

@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react'
 import { useCountdown } from '../hooks/useCountdown'
+import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
-import { CheckCircle, Clock, MessageCircle, Trash2, Pencil, Gift } from 'lucide-react'
+import { CheckCircle, Clock, MessageCircle, Trash2, Pencil, Gift, UserCheck } from 'lucide-react'
+import ReactionsBar from './ReactionsBar'
 
 function CountdownDisplay({ deadline, completed }) {
   const { days, hours, minutes, seconds, expired } = useCountdown(deadline)
@@ -19,8 +22,25 @@ function CountdownDisplay({ deadline, completed }) {
   )
 }
 
+function TaggedFriend({ userId }) {
+  const [username, setUsername] = useState(null)
+  useEffect(() => {
+    if (!userId) return
+    supabase.from('profiles').select('username').eq('id', userId).single()
+      .then(({ data }) => { if (data) setUsername(data.username) })
+  }, [userId])
+  if (!username) return null
+  return (
+    <div className="goal-tagged">
+      <UserCheck size={12} />
+      <span>@{username}</span>
+    </div>
+  )
+}
+
 export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, isFriendGoal, currentUserId }) {
   const isOwner = goal.user_id === currentUserId
+  const isTagged = goal.tagged_friend_id === currentUserId
   const urgencyClass = () => {
     if (goal.completed) return 'card-goal completed'
     const days = Math.floor((new Date(goal.deadline) - new Date()) / 86400000)
@@ -31,11 +51,12 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, 
 
   function handleCardClick(e) {
     if (e.target.closest('button')) return
+    if (e.target.closest('.reactions-bar')) return
     if (isOwner && onEdit) onEdit(goal)
   }
 
   return (
-    <div className={`${urgencyClass()} ${isOwner ? 'clickable' : ''}`} onClick={handleCardClick}>
+    <div className={`${urgencyClass()} ${isOwner ? 'clickable' : ''} ${isTagged ? 'tagged-for-me' : ''}`} onClick={handleCardClick}>
       <div className="goal-header">
         <div>
           <h3 className="goal-title">{goal.title}</h3>
@@ -54,6 +75,10 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, 
         </div>
       </div>
 
+      {goal.tagged_friend_id && (
+        <TaggedFriend userId={goal.tagged_friend_id} />
+      )}
+
       {goal.gift && (
         <div className="goal-gift-label">
           <Gift size={13} />
@@ -62,6 +87,8 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, 
       )}
 
       <CountdownDisplay deadline={goal.deadline} completed={goal.completed} />
+
+      <ReactionsBar goalId={goal.id} currentUserId={currentUserId} />
 
       <div className="goal-footer">
         <span className="goal-date">
@@ -74,7 +101,7 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, 
               <CheckCircle size={16} />
             </button>
           )}
-          {isFriendGoal && !goal.completed && (
+          {(isFriendGoal || isTagged) && !goal.completed && (
             <button className="btn-icon info" onClick={() => onNudge(goal)} title="Send accountability nudge">
               <MessageCircle size={16} />
             </button>

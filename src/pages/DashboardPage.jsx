@@ -5,18 +5,21 @@ import GoalCard from '../components/GoalCard'
 import AddGoalModal from '../components/AddGoalModal'
 import EditGoalModal from '../components/EditGoalModal'
 import CompleteGoalModal from '../components/CompleteGoalModal'
-import { Plus, Target } from 'lucide-react'
+import NudgeModal from '../components/NudgeModal'
+import { Plus, Target, UserCheck } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user, profile, refreshProfile } = useAuth()
   const [goals, setGoals] = useState([])
+  const [taggedGoals, setTaggedGoals] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [editGoal, setEditGoal] = useState(null)
   const [completeGoal, setCompleteGoal] = useState(null)
+  const [nudgeGoal, setNudgeGoal] = useState(null)
   const [filter, setFilter] = useState('active')
 
-  useEffect(() => { if (user) fetchGoals() }, [user])
+  useEffect(() => { if (user) { fetchGoals(); fetchTaggedGoals() } }, [user])
 
   async function fetchGoals() {
     const { data } = await supabase
@@ -28,40 +31,46 @@ export default function DashboardPage() {
     setLoading(false)
   }
 
+  async function fetchTaggedGoals() {
+    const { data } = await supabase
+      .from('goals')
+      .select('*, profiles(username)')
+      .eq('tagged_friend_id', user.id)
+      .eq('completed', false)
+      .order('deadline', { ascending: true })
+    setTaggedGoals(data || [])
+  }
+
   async function addGoal(goalData) {
     const { error } = await supabase.from('goals').insert({ ...goalData, user_id: user.id })
-    if (!error) fetchGoals()
+    if (!error) { fetchGoals(); fetchTaggedGoals() }
   }
 
   async function saveGoal(updates) {
     const { id, ...fields } = updates
     const { error } = await supabase.from('goals').update(fields).eq('id', id)
-    if (!error) fetchGoals()
+    if (!error) { fetchGoals(); fetchTaggedGoals() }
   }
 
   async function handleComplete(goal, gift) {
-    const updateData = {
-      completed: true,
-      completed_at: new Date().toISOString(),
-    }
+    const updateData = { completed: true, completed_at: new Date().toISOString() }
     if (gift) updateData.gift = gift
-    const { error } = await supabase
-      .from('goals')
-      .update(updateData)
-      .eq('id', goal.id)
+    const { error } = await supabase.from('goals').update(updateData).eq('id', goal.id)
     if (!error) {
-      await supabase
-        .from('profiles')
-        .update({ score: (profile?.score || 0) + goal.points })
-        .eq('id', user.id)
+      await supabase.from('profiles').update({ score: (profile?.score || 0) + goal.points }).eq('id', user.id)
       await refreshProfile()
       fetchGoals()
+      fetchTaggedGoals()
     }
   }
 
   async function deleteGoal(id) {
     await supabase.from('goals').delete().eq('id', id)
     setGoals(g => g.filter(x => x.id !== id))
+  }
+
+  async function sendNudge(goalId, message) {
+    await supabase.from('nudges').insert({ goal_id: goalId, sender_id: user.id, message })
   }
 
   const filtered = goals.filter(g =>
@@ -100,6 +109,27 @@ export default function DashboardPage() {
           <span className="stat-label">Total Score</span>
         </div>
       </div>
+
+      {taggedGoals.length > 0 && (
+        <div className="tagged-section">
+          <h3 className="section-title">
+            <UserCheck size={16} /> You're Tagged In
+          </h3>
+          <div className="goals-grid">
+            {taggedGoals.map(g => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                currentUserId={user.id}
+                isFriendGoal={true}
+                onNudge={setNudgeGoal}
+                onComplete={() => {}}
+                onDelete={() => {}}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="filter-tabs">
         {['active','completed','all'].map(f => (
@@ -141,14 +171,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {showAdd && <AddGoalModal onClose={() => setShowAdd(false)} onAdd={addGoal} />}
-      {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={saveGoal} />}
+      {showAdd && <AddGoalModal onClose={() => setShowAdd(false)} onAdd={addGoal} currentUserId={user.id} />}
+      {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={saveGoal} currentUserId={user.id} />}
       {completeGoal && (
-        <CompleteGoalModal
-          goal={completeGoal}
-          onClose={() => setCompleteGoal(null)}
-          onConfirm={handleComplete}
-        />
+        <CompleteGoalModal goal={completeGoal} onClose={() => setCompleteGoal(null)} onConfirm={handleComplete} />
+      )}
+      {nudgeGoal && (
+        <NudgeModal goal={nudgeGoal} onClose={() => setNudgeGoal(null)} onSend={sendNudge} />
       )}
     </div>
   )
