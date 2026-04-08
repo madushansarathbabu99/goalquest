@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { format } from 'date-fns'
-import { Trophy, CheckCircle } from 'lucide-react'
+import { Trophy, CheckCircle, Gift } from 'lucide-react'
 
 export default function HistoryPage() {
   const { user, profile } = useAuth()
@@ -54,6 +54,12 @@ export default function HistoryPage() {
               <div className="history-info">
                 <h3>{g.title}</h3>
                 {g.description && <p>{g.description}</p>}
+                {g.gift && (
+                  <div className="history-gift">
+                    <Gift size={12} />
+                    <span>{g.gift}</span>
+                  </div>
+                )}
                 <span className="history-date">
                   Completed {g.completed_at ? format(new Date(g.completed_at), 'MMM d, yyyy · h:mm a') : '—'}
                 </span>

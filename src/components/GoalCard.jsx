@@ -1,6 +1,6 @@
 import { useCountdown } from '../hooks/useCountdown'
 import { format } from 'date-fns'
-import { CheckCircle, Clock, MessageCircle, Trash2 } from 'lucide-react'
+import { CheckCircle, Clock, MessageCircle, Trash2, Pencil, Gift } from 'lucide-react'
 
 function CountdownDisplay({ deadline, completed }) {
   const { days, hours, minutes, seconds, expired } = useCountdown(deadline)
@@ -19,7 +19,7 @@ function CountdownDisplay({ deadline, completed }) {
   )
 }
 
-export default function GoalCard({ goal, onComplete, onDelete, onNudge, isFriendGoal, currentUserId }) {
+export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, isFriendGoal, currentUserId }) {
   const isOwner = goal.user_id === currentUserId
   const urgencyClass = () => {
     if (goal.completed) return 'card-goal completed'
@@ -29,8 +29,13 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, isFriend
     return 'card-goal'
   }
 
+  function handleCardClick(e) {
+    if (e.target.closest('button')) return
+    if (isOwner && onEdit) onEdit(goal)
+  }
+
   return (
-    <div className={urgencyClass()}>
+    <div className={`${urgencyClass()} ${isOwner ? 'clickable' : ''}`} onClick={handleCardClick}>
       <div className="goal-header">
         <div>
           <h3 className="goal-title">{goal.title}</h3>
@@ -39,8 +44,22 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, isFriend
             <span className="goal-owner">@{goal.profiles.username}</span>
           )}
         </div>
-        <div className="goal-points">+{goal.points}pts</div>
+        <div className="goal-header-right">
+          <div className="goal-points">+{goal.points}pts</div>
+          {isOwner && onEdit && (
+            <button className="btn-icon edit-hint" onClick={() => onEdit(goal)} title="Edit goal">
+              <Pencil size={13} />
+            </button>
+          )}
+        </div>
       </div>
+
+      {goal.gift && (
+        <div className="goal-gift-label">
+          <Gift size={13} />
+          <span>{goal.gift}</span>
+        </div>
+      )}
 
       <CountdownDisplay deadline={goal.deadline} completed={goal.completed} />
 

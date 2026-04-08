@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import GoalCard from '../components/GoalCard'
 import AddGoalModal from '../components/AddGoalModal'
+import EditGoalModal from '../components/EditGoalModal'
+import CompleteGoalModal from '../components/CompleteGoalModal'
 import { Plus, Target } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -10,6 +12,8 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editGoal, setEditGoal] = useState(null)
+  const [completeGoal, setCompleteGoal] = useState(null)
   const [filter, setFilter] = useState('active')
 
   useEffect(() => { if (user) fetchGoals() }, [user])
@@ -29,10 +33,21 @@ export default function DashboardPage() {
     if (!error) fetchGoals()
   }
 
-  async function completeGoal(goal) {
+  async function saveGoal(updates) {
+    const { id, ...fields } = updates
+    const { error } = await supabase.from('goals').update(fields).eq('id', id)
+    if (!error) fetchGoals()
+  }
+
+  async function handleComplete(goal, gift) {
+    const updateData = {
+      completed: true,
+      completed_at: new Date().toISOString(),
+    }
+    if (gift) updateData.gift = gift
     const { error } = await supabase
       .from('goals')
-      .update({ completed: true, completed_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', goal.id)
     if (!error) {
       await supabase
@@ -116,8 +131,9 @@ export default function DashboardPage() {
               key={g.id}
               goal={g}
               currentUserId={user.id}
-              onComplete={completeGoal}
+              onComplete={(goal) => setCompleteGoal(goal)}
               onDelete={deleteGoal}
+              onEdit={(goal) => setEditGoal(goal)}
               isFriendGoal={false}
               onNudge={() => {}}
             />
@@ -126,6 +142,14 @@ export default function DashboardPage() {
       )}
 
       {showAdd && <AddGoalModal onClose={() => setShowAdd(false)} onAdd={addGoal} />}
+      {editGoal && <EditGoalModal goal={editGoal} onClose={() => setEditGoal(null)} onSave={saveGoal} />}
+      {completeGoal && (
+        <CompleteGoalModal
+          goal={completeGoal}
+          onClose={() => setCompleteGoal(null)}
+          onConfirm={handleComplete}
+        />
+      )}
     </div>
   )
 }
