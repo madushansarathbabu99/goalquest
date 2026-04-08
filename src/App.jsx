@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
+import FeedPage from './pages/FeedPage'
 import FriendsPage from './pages/FriendsPage'
 import HistoryPage from './pages/HistoryPage'
 import NotificationsPanel from './components/NotificationsPanel'
 import { getCurrentQuote } from './lib/quotes'
-import { Target, Users, Trophy, LogOut, Quote } from 'lucide-react'
+import { Target, Rss, Users, Trophy, LogOut, Quote } from 'lucide-react'
 
 function Layout() {
   const { user, profile, signOut, loading } = useAuth()
@@ -32,6 +33,7 @@ function Layout() {
 
   const navItems = [
     { id: 'dashboard', label: 'Goals', icon: Target },
+    { id: 'feed', label: 'Feed', icon: Rss },
     { id: 'friends', label: 'Friends', icon: Users },
     { id: 'history', label: 'History', icon: Trophy },
   ]
@@ -72,6 +74,7 @@ function Layout() {
 
       <main className="app-main">
         {page === 'dashboard' && <DashboardPage />}
+        {page === 'feed' && <FeedPage />}
         {page === 'friends' && <FriendsPage />}
         {page === 'history' && <HistoryPage />}
       </main>
