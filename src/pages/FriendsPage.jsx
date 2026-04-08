@@ -49,10 +49,10 @@ export default function FriendsPage() {
     const { data } = await supabase
       .from('profiles')
       .select('id, username, score')
-      .ilike('username', search.trim())
+      .ilike('username', `%${search.trim()}%`)
       .neq('id', user.id)
-      .single()
-    setSearchResult(data || 'not_found')
+      .limit(10)
+    setSearchResult(!data || data.length === 0 ? 'not_found' : data)
     setSearching(false)
   }
 
@@ -82,21 +82,21 @@ export default function FriendsPage() {
           </button>
         </div>
         {msg && <p className="msg-success">{msg}</p>}
-        {searchResult === 'not_found' && <p className="msg-error">No user found with that username.</p>}
-        {searchResult && searchResult !== 'not_found' && (
-          <div className="search-result">
+        {searchResult === 'not_found' && <p className="msg-error">No user found matching that username.</p>}
+        {Array.isArray(searchResult) && searchResult.map(u => (
+          <div key={u.id} className="search-result">
             <div className="user-chip">
-              <div className="avatar">{searchResult.username[0].toUpperCase()}</div>
+              <div className="avatar">{u.username[0].toUpperCase()}</div>
               <div>
-                <strong>@{searchResult.username}</strong>
-                <span className="score-badge">{searchResult.score} pts</span>
+                <strong>@{u.username}</strong>
+                <span className="score-badge">{u.score} pts</span>
               </div>
             </div>
-            <button className="btn-primary" onClick={() => sendFriendRequest(searchResult.id)}>
+            <button className="btn-primary" onClick={() => sendFriendRequest(u.id)}>
               <UserPlus size={16} /> Add Friend
             </button>
           </div>
-        )}
+        ))}
       </div>
 
       {friends.length > 0 && (
