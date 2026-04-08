@@ -21,11 +21,12 @@ export default function FeedPage() {
   }, [user])
 
   async function fetchTaggedGoals() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('goals')
-      .select('*, profiles(username)')
+      .select('*, owner:user_id(username)')
       .eq('tagged_friend_id', user.id)
       .order('deadline', { ascending: true })
+    console.log('Tagged goals query:', { userId: user.id, data, error })
     setTaggedGoals(data || [])
     setLoading(false)
   }

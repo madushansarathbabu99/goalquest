@@ -61,8 +61,8 @@ export default function GoalCard({ goal, onComplete, onDelete, onNudge, onEdit, 
         <div>
           <h3 className="goal-title">{goal.title}</h3>
           {goal.description && <p className="goal-desc">{goal.description}</p>}
-          {isFriendGoal && goal.profiles && (
-            <span className="goal-owner">@{goal.profiles.username}</span>
+          {isFriendGoal && (goal.profiles || goal.owner) && (
+            <span className="goal-owner">@{goal.profiles?.username || goal.owner?.username}</span>
           )}
         </div>
         <div className="goal-header-right">
